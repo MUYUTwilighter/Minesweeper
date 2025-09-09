@@ -1,4 +1,4 @@
-package cool.muyucloud.minesweeper.render.widget;
+package cool.muyucloud.minesweeper.widget;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -7,7 +7,16 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.TreeSet;
 
-public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W>> {
+/**
+ * The base class for all widgets.
+ * A widget can contain other widgets as its children.
+ * It provides methods for adding, removing, and rendering child widgets,
+ * as well as handling input events such as key presses.
+ *
+ * @param <W> The type of the widget itself, used for method chaining.
+ */
+@SuppressWarnings("unused")
+public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<?>> {
     @NotNull
     private final HashSet<Widget<?>> parents = new HashSet<>();
     @NotNull
@@ -49,6 +58,11 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         return Optional.empty();
     }
 
+    /**
+     * Handle key pressed event at (x, y) with the given key code.
+     * This method will first propagate the event to its children,
+     * and if none of the children handle the event, it will call {@link #handleKeyPressed(int, int, int)}.
+     */
     @ApiStatus.NonExtendable
     public boolean onKeyPressed(int x, int y, int keyCode) {
         synchronized (this.children) {
@@ -70,7 +84,6 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
      * @param y       The y pos relative to this widget.
      * @param keyCode The key code of the pressed key.
      * @return true if the event is handled, and other sibling widgets contains the same location will be ignored.
-     *
      */
     public boolean handleKeyPressed(int x, int y, int keyCode) {
         return false;
@@ -90,10 +103,12 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         return this.handleKeyPressed(x, y, keyCode);
     }
 
-    public boolean handleKeyReleased(int x, int y, int keyCode) {
-        return false;
-    }
-
+    /**
+     * Add child widgets to this widget.
+     *
+     * @param children The child widgets to add.
+     * @return This widget instance for method chaining.
+     */
     public W add(@NotNull Widget<?>... children) {
         synchronized (this.children) {
             for (Widget<?> child : children) {
@@ -106,6 +121,12 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         return this.adapt();
     }
 
+    /**
+     * Remove child widgets from this widget.
+     *
+     * @param children The child widgets to remove.
+     * @return This widget instance for method chaining.
+     */
     public W remove(@NotNull Widget<?>... children) {
         synchronized (this.children) {
             for (Widget<?> child : children) {
@@ -118,6 +139,11 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         return this.adapt();
     }
 
+    /**
+     * Remove all child widgets from this widget.
+     *
+     * @return This widget instance for method chaining.
+     */
     public W clear() {
         synchronized (this.children) {
             for (Widget<?> child : this.children) {
@@ -130,6 +156,11 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         return this.adapt();
     }
 
+    /**
+     * Refresh this widget in all its parents.
+     * This method will remove and re-add this widget in all its parents' children set,
+     * which will update the rendering order based on the z-index.
+     */
     public void refresh() {
         synchronized (this.parents) {
             this.parents.forEach(parent -> {
@@ -141,12 +172,17 @@ public abstract class Widget<W extends Widget<W>> implements Comparable<Widget<W
         }
     }
 
+    /**
+     * Compare this widget with another widget based on their z-index.
+     * A widget with a higher z-index will be rendered on top of a widget with a lower z-index.
+     * If two widgets have the same z-index, their order is undefined (Based on the order-on-add).
+     *
+     * @param o The other widget to compare with.
+     * @return A negative integer, zero, or a positive integer as this widget is less than, equal to, or greater than the specified widget.
+     */
     @Override
-    public int compareTo(Widget o) {
-        int z = Integer.compare(this.getZ(), o.getZ());
-        int y = Integer.compare(this.getY(), o.getY());
-        int x = Integer.compare(this.getX(), o.getX());
-        return z == 0 ? (y == 0 ? x : y) : z;
+    public int compareTo(Widget<?> o) {
+        return Integer.compare(this.getZ(), o.getZ());
     }
 
     /**
